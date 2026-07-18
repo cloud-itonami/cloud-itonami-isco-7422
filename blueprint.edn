@@ -1,0 +1,11 @@
+[{:itonami.blueprint/social-impact [:electrical-safety :working-at-height-safety :network-service-continuity]
+  :itonami.blueprint/domain :trades/ict-installation-service-coordination
+  :itonami.blueprint/required-technologies [:robotics :identity :audit-ledger]
+  :itonami.blueprint/isco-08 "7422"
+  :itonami.blueprint/name "Information and Communications Technology Installers and Servicers Coordination Practice"
+  :itonami.blueprint/governor :ictinstall-governor
+  :itonami.blueprint/robotics true
+  :db/id -1
+  :itonami.blueprint/status :public-oss
+  :itonami.blueprint/id "cloud-itonami-isco-7422"
+  :itonami.blueprint/license "AGPL-3.0-or-later"}]

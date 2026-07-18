@@ -1,0 +1,74 @@
+(ns ictinstall.actor-test
+  (:require [clojure.test :refer [deftest is testing]]
+            [ictinstall.actor :as actor]
+            [ictinstall.store :as store]))
+
+(defn- fresh-store []
+  (let [st (store/mem-store)]
+    (store/register-installer! st {:installer-id "installer-1" :name "Kobo Yamada" :certified? true})
+    (store/register-site! st {:site-id "SITE-1" :name "Kobo Data Center" :max-supply-cost 2000})
+    st))
+
+(deftest commits-a-registered-work-log
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:installer-id "installer-1" :op :log-work-record :stake :low
+                  :site-id "SITE-1" :task "structured-cabling run progress log"}
+        result (actor/run-request! graph request {} "thread-1")]
+    (is (= :done (:status result)))
+    (is (some? (get-in result [:state :record])))
+    (is (= 1 (count (store/records-of st "installer-1"))))))
+
+(deftest holds-an-unregistered-site-proposal
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:installer-id "installer-1" :op :log-work-record :stake :low
+                  :site-id "SITE-ghost" :task "structured-cabling run progress log"}
+        result (actor/run-request! graph request {} "thread-2")]
+    (is (= :hold (:disposition (:state result))))
+    (is (empty? (store/records-of st "installer-1")))))
+
+(deftest interrupts-then-approves-safety-concern-on-human-approval
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:installer-id "installer-1" :op :flag-safety-concern :stake :low
+                  :site-id "SITE-1" :hazard-type :working-at-height}
+        interrupted (actor/run-request! graph request {} "thread-3")]
+    (is (= :interrupted (:status interrupted)))
+    (is (empty? (store/records-of st "installer-1")))
+    (let [resumed (actor/approve! graph "thread-3")]
+      (is (= :done (:status resumed)))
+      (is (= 1 (count (store/records-of st "installer-1")))))))
+
+(deftest holds-a-scope-excluded-op-even-at-high-confidence
+  (testing "an actor run can never commit a proposal that would finalize an installation-execution decision, regardless of disposition path"
+    (let [st (fresh-store)
+          graph (actor/build-graph {:store st})
+          request {:installer-id "installer-1" :op :finalize-installation-execution-decision :stake :low
+                    :site-id "SITE-1" :task "installation execution decision"}
+          result (actor/run-request! graph request {} "thread-4")]
+      (is (= :done (:status result)))
+      (is (= :hold (:disposition (:state result))))
+      (is (empty? (store/records-of st "installer-1"))))))
+
+(deftest holds-a-network-electrical-compliance-clearance-op-even-at-high-confidence
+  (testing "an actor run can never commit a proposal that would authorize a network/electrical-compliance-clearance determination, regardless of disposition path"
+    (let [st (fresh-store)
+          graph (actor/build-graph {:store st})
+          request {:installer-id "installer-1" :op :authorize-network-electrical-compliance-clearance :stake :low
+                    :site-id "SITE-1" :task "network/electrical compliance clearance"}
+          result (actor/run-request! graph request {} "thread-5")]
+      (is (= :done (:status result)))
+      (is (= :hold (:disposition (:state result))))
+      (is (empty? (store/records-of st "installer-1"))))))
+
+(deftest holds-an-override-site-safety-officer-op-even-at-high-confidence
+  (testing "an actor run can never commit a proposal that would override a site safety officer's judgment, regardless of disposition path"
+    (let [st (fresh-store)
+          graph (actor/build-graph {:store st})
+          request {:installer-id "installer-1" :op :override-site-safety-officer-judgment :stake :low
+                    :site-id "SITE-1" :task "site safety officer judgment override"}
+          result (actor/run-request! graph request {} "thread-6")]
+      (is (= :done (:status result)))
+      (is (= :hold (:disposition (:state result))))
+      (is (empty? (store/records-of st "installer-1"))))))
