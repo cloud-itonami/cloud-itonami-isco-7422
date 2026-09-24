@@ -1,0 +1,43 @@
+;; What this vertical's robot physically does, declared for
+;; kotoba.robotics.process (kotoba-lang/robotics). `kbb -M:physics` runs it.
+;;
+;; README "Robotics premise": a site scheduling/logistics coordination robot
+;; handles installer/crew scheduling, installation-job records and cabling/
+;; networking-equipment supply orders for an ICT installer/servicer crew
+;; (ISCO 7422). Its physical work: taking cable boxes and equipment to the
+;; comms room, lifting a server into the rack, and the pull on a 4-pair
+;; copper data cable as it is drawn through containment.
+;;
+;; Every number without a cited source is marked `estimate` in its :basis.
+;; Replacing an estimate with a sourced value is this bot's growth work.
+{:physics/schema "itonami.physical-ai.spec.v1"
+ :repo "cloud-itonami/cloud-itonami-isco-7422"
+ :cases
+ [{:id :cable-boxes-to-comms-room
+   :kind :transport
+   :procedure "cart takes boxes of data cable and rack equipment from the loading bay to the comms room"
+   :params {:mass-kg 50.0 :distance-m 60.0 :v-max-mps 1.2 :a-max-mps2 0.5
+            :brake-decel-mps2 0.8 :drive-force-n 130.0 :crr 0.015
+            :cog-height-m 0.55 :support-half-length-m 0.30 :max-time-s 1200.0}
+   :sweep {:param :payload-kg :values [10.0 40.0 100.0 200.0 350.0]}
+   :quantity :cycle-time-s
+   :limit {:max 60.0 :basis "estimate: one bay-to-comms-room leg per delivery"}
+   :boundary {:lo 5.0 :hi 1500.0}}
+  {:id :server-into-rack
+   :kind :manipulator
+   :procedure "arm lifts a rack server from the cart onto its rails at mid-rack height"
+   :params {:l1-m 0.70 :l2-m 0.60 :m1-kg 12.0 :m2-kg 9.0
+            :from [0.70 0.20] :to [0.80 0.90] :duration-s 4.0 :steps 500}
+   :sweep {:param :payload-kg :values [8.0 15.0 22.0 30.0 40.0]}
+   :quantity :peak-tau1-nm
+   :limit {:max 450.0 :basis "estimate: continuous shoulder torque of a 35 kg-payload class industrial arm at ~1.3 m reach"}
+   :boundary {:lo 1.0 :hi 100.0}}
+  {:id :data-cable-pull
+   :kind :material
+   :procedure "pull on the eight 23 AWG annealed-copper conductors of a 4-pair data cable while it is drawn through containment"
+   :params {:length-m 1.0 :area-m2 2.04e-6 :youngs-modulus-pa 117.0e9
+            :yield-stress-pa 70.0e6 :hardening-pa 1.0e9 :density-kg-m3 8960.0}
+   :sweep {:param :max-force-n :values [50.0 90.0 110.0 150.0 200.0]}
+   :quantity :final-strain
+   :limit {:max 0.0006 :basis "estimate: keep the conductors elastic -- annealed copper assumed to yield near 70 MPa (~0.0006 strain at 117 GPa); the cabling standard's maximum pulling tension is the source to cite"}
+   :boundary {:lo 20.0 :hi 400.0}}]}
