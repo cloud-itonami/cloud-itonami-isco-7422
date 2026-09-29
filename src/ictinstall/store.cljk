@@ -1,7 +1,7 @@
 (ns ictinstall.store
   "SSoT for the ISCO-08 7422 Information and Communications Technology
   Installers and Servicers site scheduling/logistics coordination
-  actor (itonami actor pattern, ADR-2607121000 / CLAUDE.md Actors
+  actor (itonami actor pattern, ADR-2607121000 / AGENTS.md Actors
   section; README's 'Robotics premise' — a site scheduling/logistics
   coordination robot performs installation-job scheduling,
   installation-job/progress record logging and cabling/networking-
